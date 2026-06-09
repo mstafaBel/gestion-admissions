@@ -11,6 +11,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
 </head>
 <body class="font-sans antialiased bg-slate-50">
     <div x-data="{ sidebarOpen: false }" class="min-h-screen flex">
@@ -130,5 +131,6 @@
             </main>
         </div>
     </div>
+    @livewireScripts
 </body>
 </html>
