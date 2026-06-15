@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $service = Service::orderBy('id')->first();
+        $service = Service::with('etage.batiment')->orderBy('id')->first();
+        $etablissementId = $service?->etage?->batiment?->etablissement_id;
 
         User::updateOrCreate(
             ['email' => 'secretaire@hopital.com'],
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Secrétaire Démo',
                 'password' => Hash::make('password'),
                 'role' => User::ROLE_SECRETAIRE,
+                'etablissement_id' => $etablissementId,
                 'service_id' => $service?->id,
                 'telephone' => '0600000001',
                 'is_active' => true,

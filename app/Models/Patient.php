@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -12,6 +13,7 @@ class Patient extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'etablissement_id',
         'num_dossier',
         'nom',
         'prenom',
@@ -34,6 +36,11 @@ class Patient extends Model
 
     public const SEXES = ['M' => 'Masculin', 'F' => 'Féminin'];
     public const GROUPES_SANGUINS = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+
+    public function etablissement(): BelongsTo
+    {
+        return $this->belongsTo(Etablissement::class);
+    }
 
     public function admissions(): HasMany
     {

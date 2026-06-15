@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use App\Livewire\Admin\Admissions as AdminAdmissions;
 use App\Livewire\Admin\Batiments;
 use App\Livewire\Admin\Chambres;
 use App\Livewire\Admin\Etablissements;
@@ -10,14 +11,18 @@ use App\Livewire\Admin\Services;
 use App\Livewire\Admin\Users;
 use App\Livewire\Secretaire\Admissions;
 use App\Livewire\Secretaire\Patients;
+use App\Livewire\Surveillant\Admissions as SurveillantAdmissions;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
+Route::view('/', 'welcome')->name('home');
 
 Route::get('dashboard', function () {
     $user = auth()->user();
     if ($user?->isAdmin()) {
         return redirect()->route('admin.dashboard');
+    }
+    if ($user?->isSurveillant()) {
+        return redirect()->route('surveillant.dashboard');
     }
     if ($user?->isSecretaire()) {
         return redirect()->route('secretaire.dashboard');
@@ -29,6 +34,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
 
     Route::get('/utilisateurs', Users::class)->name('users');
+    Route::get('/admissions', AdminAdmissions::class)->name('admissions');
 
     Route::prefix('parametrage')->group(function () {
         Route::get('/etablissements', Etablissements::class)->name('etablissements');
@@ -38,6 +44,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/chambres', Chambres::class)->name('chambres');
         Route::get('/lits', Lits::class)->name('lits');
     });
+});
+
+Route::middleware(['auth', 'surveillant'])->prefix('surveillant')->name('surveillant.')->group(function () {
+    Route::view('/dashboard', 'surveillant.dashboard')->name('dashboard');
+    Route::get('/admissions', SurveillantAdmissions::class)->name('admissions');
 });
 
 Route::middleware(['auth', 'secretaire'])->prefix('secretaire')->name('secretaire.')->group(function () {

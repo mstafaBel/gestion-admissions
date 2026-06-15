@@ -40,7 +40,13 @@
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-slate-900">Bonjour, {{ $user->name }}</h2>
         <p class="text-slate-500 mt-1">
-            Service <span class="font-semibold text-teal-700">{{ $service?->nom ?? 'non affecté' }}</span>
+            @if($user->etablissement)
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5"/></svg>
+                    {{ $user->etablissement->nom }}
+                </span>
+            @endif
+            <span class="ml-1">Service <span class="font-semibold text-teal-700">{{ $service?->nom ?? 'non affecté' }}</span></span>
         </p>
     </div>
 

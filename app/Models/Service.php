@@ -40,4 +40,9 @@ class Service extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function admissions(): HasMany
+    {
+        return $this->hasMany(Admission::class);
+    }
 }

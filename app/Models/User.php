@@ -28,6 +28,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'etablissement_id',
         'service_id',
         'telephone',
         'is_active',
@@ -50,6 +51,11 @@ class User extends Authenticatable
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function etablissement(): BelongsTo
+    {
+        return $this->belongsTo(Etablissement::class);
     }
 
     public function isAdmin(): bool

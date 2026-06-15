@@ -15,7 +15,7 @@
 
     {{-- Filtres --}}
     <div class="bg-white rounded-xl border border-slate-200 p-4 mb-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div class="md:col-span-2 relative">
                 <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -30,6 +30,13 @@
                     <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>
+            <select wire:model.live="filterEtablissement"
+                    class="px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                <option value="">Tous les établissements</option>
+                @foreach($etablissements as $etab)
+                    <option value="{{ $etab->id }}">{{ $etab->nom }}</option>
+                @endforeach
+            </select>
         </div>
     </div>
 
@@ -41,8 +48,8 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Utilisateur</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Profil</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Établissement</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Service</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Téléphone</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Statut</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -75,10 +82,10 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">
-                                {{ $user->service?->nom ?? '—' }}
+                                {{ $user->etablissement?->nom ?? ($user->isAdmin() ? 'Tous' : '—') }}
                             </td>
                             <td class="px-4 py-3 text-sm text-slate-600">
-                                {{ $user->telephone ?: '—' }}
+                                {{ $user->service?->nom ?? '—' }}
                             </td>
                             <td class="px-4 py-3">
                                 <button wire:click="toggleActive({{ $user->id }})"
@@ -111,7 +118,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-12 text-center text-slate-500">
+                            <td colspan="6" class="px-4 py-12 text-center text-slate-500" wire:key="empty-row">
                                 <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857"/>
                                 </svg>
@@ -191,11 +198,34 @@
                                    class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                         </div>
 
+                        @if($role !== 'admin')
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    Établissement <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model.live="etablissement_id"
+                                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                    <option value="">— Choisir un établissement —</option>
+                                    @foreach($etablissements as $etab)
+                                        <option value="{{ $etab->id }}">{{ $etab->nom }} @if($etab->code)({{ $etab->code }})@endif</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1">L'utilisateur ne verra que les données de cet établissement.</p>
+                                @error('etablissement_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+
                         @if($role === 'secretaire')
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Service affecté</label>
-                                <select wire:model="service_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                                    <option value="">— Aucun —</option>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">
+                                    Service affecté <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model="service_id"
+                                        @disabled(!$etablissement_id)
+                                        class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed">
+                                    <option value="">
+                                        @if(!$etablissement_id) — Choisir d'abord un établissement — @else — Choisir un service — @endif
+                                    </option>
                                     @foreach($services as $service)
                                         <option value="{{ $service->id }}">
                                             {{ $service->nom }}

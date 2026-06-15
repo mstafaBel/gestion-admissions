@@ -60,8 +60,17 @@ class Patients extends Component
         $this->resetPage();
     }
 
+    protected function getEtablissementId(): ?int
+    {
+        return auth()->user()->etablissement_id;
+    }
+
     public function openCreate(): void
     {
+        if (!$this->getEtablissementId()) {
+            session()->flash('error', 'Aucun établissement affecté à votre compte.');
+            return;
+        }
         $this->resetForm();
         $this->num_dossier = Patient::genererNumDossier();
         $this->showModal = true;
@@ -70,6 +79,9 @@ class Patients extends Component
     public function openEdit(int $id): void
     {
         $p = Patient::findOrFail($id);
+        if ((int) $p->etablissement_id !== (int) $this->getEtablissementId()) {
+            abort(403, 'Ce patient n\'appartient pas à votre établissement.');
+        }
         $this->editingId = $p->id;
         $this->num_dossier = $p->num_dossier;
         $this->nom = $p->nom;
@@ -90,6 +102,12 @@ class Patients extends Component
 
     public function save(): void
     {
+        $etablissementId = $this->getEtablissementId();
+        if (!$etablissementId) {
+            session()->flash('error', 'Aucun établissement affecté à votre compte.');
+            return;
+        }
+
         $data = $this->validate();
         foreach ($data as $k => $v) {
             if ($v === '') {
@@ -98,9 +116,14 @@ class Patients extends Component
         }
 
         if ($this->editingId) {
-            Patient::where('id', $this->editingId)->update($data);
+            $existing = Patient::findOrFail($this->editingId);
+            if ((int) $existing->etablissement_id !== (int) $etablissementId) {
+                abort(403);
+            }
+            $existing->update($data);
             session()->flash('success', 'Patient mis à jour.');
         } else {
+            $data['etablissement_id'] = $etablissementId;
             Patient::create($data);
             session()->flash('success', 'Patient enregistré.');
         }
@@ -111,6 +134,10 @@ class Patients extends Component
 
     public function confirmDelete(int $id): void
     {
+        $p = Patient::findOrFail($id);
+        if ((int) $p->etablissement_id !== (int) $this->getEtablissementId()) {
+            abort(403);
+        }
         $this->deletingId = $id;
         $this->showDeleteModal = true;
     }
@@ -118,7 +145,11 @@ class Patients extends Component
     public function delete(): void
     {
         if ($this->deletingId) {
-            Patient::where('id', $this->deletingId)->delete();
+            $p = Patient::findOrFail($this->deletingId);
+            if ((int) $p->etablissement_id !== (int) $this->getEtablissementId()) {
+                abort(403);
+            }
+            $p->delete();
             session()->flash('success', 'Patient supprimé.');
         }
         $this->showDeleteModal = false;
@@ -149,6 +180,7 @@ class Patients extends Component
     public function render()
     {
         $patients = Patient::query()
+            ->where('etablissement_id', $this->getEtablissementId())
             ->with('admissionEnCours.service')
             ->when($this->search, fn($q) => $q->where(function ($w) {
                 $w->where('num_dossier', 'like', "%{$this->search}%")

@@ -59,6 +59,11 @@ class Admissions extends Component
         return auth()->user()->service_id;
     }
 
+    protected function getEtablissementId(): ?int
+    {
+        return auth()->user()->etablissement_id;
+    }
+
     public function getLitsDisponiblesProperty()
     {
         return $this->getLitsLibres($this->getServiceId());
@@ -74,10 +79,14 @@ class Admissions extends Component
         if (!$serviceId) {
             return collect();
         }
+        $etablissementId = $this->getEtablissementId();
         return Lit::query()
             ->with('chambre')
             ->where('statut', Lit::STATUT_LIBRE)
-            ->whereHas('chambre', fn($q) => $q->where('service_id', $serviceId))
+            ->whereHas('chambre', function ($q) use ($serviceId, $etablissementId) {
+                $q->where('service_id', $serviceId)
+                  ->whereHas('service.etage.batiment', fn($e) => $e->where('etablissement_id', $etablissementId));
+            })
             ->orderBy('chambre_id')->orderBy('numero')
             ->get();
     }
@@ -215,6 +224,13 @@ class Admissions extends Component
             'transfert_motif' => 'required|string|max:255',
         ]);
 
+        // Le service cible doit appartenir au même établissement
+        $serviceCible = Service::with('etage.batiment')->find($data['transfert_service_id']);
+        if (!$serviceCible || (int) $serviceCible->etage?->batiment?->etablissement_id !== (int) $this->getEtablissementId()) {
+            $this->addError('transfert_service_id', 'Vous ne pouvez transférer qu\'à l\'intérieur de votre établissement.');
+            return;
+        }
+
         DB::transaction(function () use ($data) {
             $ancienne = Admission::with('lit', 'patient')->lockForUpdate()->findOrFail($this->transfertAdmissionId);
             if (!$ancienne->estEnCours()) {
@@ -274,15 +290,25 @@ class Admissions extends Component
             ->latest('date_entree')
             ->paginate(15);
 
+        $etablissementId = $this->getEtablissementId();
+
         $patientsLibres = Patient::query()
+            ->where('etablissement_id', $etablissementId)
             ->whereDoesntHave('admissionEnCours')
             ->orderBy('nom')->orderBy('prenom')
             ->limit(500)
             ->get();
 
+        // Services du même établissement uniquement (pour les transferts)
+        $services = Service::query()
+            ->with('etage.batiment')
+            ->whereHas('etage.batiment', fn($q) => $q->where('etablissement_id', $etablissementId))
+            ->orderBy('nom')
+            ->get();
+
         return view('livewire.secretaire.admissions', [
             'admissions' => $admissions,
-            'services' => Service::orderBy('nom')->get(),
+            'services' => $services,
             'monService' => $serviceId ? Service::find($serviceId) : null,
             'patientsLibres' => $patientsLibres,
             'statuts' => Admission::STATUTS,
